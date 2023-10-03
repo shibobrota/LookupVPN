@@ -1,15 +1,16 @@
 package com.das.lookupvpn
 
 import android.content.Context
+import android.graphics.Movie
 import android.util.Log
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import com.android.volley.DefaultRetryPolicy
-import com.android.volley.Request
-import com.android.volley.Response
-import com.android.volley.toolbox.StringRequest
-import com.android.volley.toolbox.Volley
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Converter
+import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.converter.scalars.ScalarsConverterFactory
+
 
 class LookupVPN {
 
@@ -22,28 +23,22 @@ class LookupVPN {
     }
 
     fun fetchServerData(onResponse: ((str: String)->Unit)? = null, onError: ((err: String)->Unit)? = null){
-        val serverUrl = "https://www.vpngate.net/api/iphone"
-        var reqQueue = Volley.newRequestQueue(context)
-        var strRequest = StringRequest(
-            Request.Method.GET,
-            serverUrl,
-            {
-                if (onResponse != null){
-                    onResponse(it)
-                }
-            },
-            {
-                if (onError != null){
-                    onError(it.toString())
-                }
+        val serverUrl = "https://www.vpngate.net/"
+        val retrofit = Retrofit.Builder()
+            .baseUrl(serverUrl)
+            .addConverterFactory(ScalarsConverterFactory.create())
+            .build()
+        val apiService: ApiService = retrofit.create(ApiService::class.java)
+        val call: Call<String> = apiService.getServerData()
+        call.enqueue(object : Callback<String>{
+            override fun onResponse(call: Call<String>, response: Response<String>) {
+                if (onResponse != null) onResponse(response.body().toString())
             }
-        )
-        strRequest.setRetryPolicy(DefaultRetryPolicy(
-            10000,
-            DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
-            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
-        ))
-        reqQueue.add(strRequest)
+
+            override fun onFailure(call: Call<String>, t: Throwable) {
+                if (onError != null) onError(t.stackTraceToString())
+            }
+        })
         Log.d(TAG, "Working!!")
     }
 }
